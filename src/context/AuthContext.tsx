@@ -1,84 +1,146 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {doc, getDoc} from 'firebase/firestore';
-import React, {createContext, useEffect, useState} from 'react';
-import {INITIAL_AUTH_CONTEXT} from '../constants';
-import {AuthContextType, CurrentUser} from '../types';
-import { hashPassword } from '../utils/hashPassword';
-import { db } from '../firebase/config';
+// src/context/AuthContext.tsx
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
-export const AuthContext = createContext<AuthContextType>(INITIAL_AUTH_CONTEXT);
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+}
 
-const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  forgotPassword: (email: string) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({children}: AuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authChecked, setAuthChecked] = useState(false);
 
-  // 🔐 Login function
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const hashedPassword = await hashPassword(password);
-      const userDocRef = doc(db, 'users', email);
-      const userDocSnapshot = await getDoc(userDocRef);
-
-      if (userDocSnapshot.exists()) {
-        const userData = userDocSnapshot.data();
-
-        if (userData.password === hashedPassword) {
-          // Save session token
-          await AsyncStorage.setItem('token', email);
-          const {password: _, ...userWithoutPassword} = userData;
-          setCurrentUser(userWithoutPassword as CurrentUser);
-          return true;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    }
-  };
-
-  // 🔐 Logout function
-  const logout = async () => {
-    await AsyncStorage.removeItem('token');
-    setCurrentUser(null);
-  };
-
-  // 🚪 Check session on app start
   useEffect(() => {
-    const loadInitialSession = async () => {
+    // Check if user is logged in
+    const checkUserLoggedIn = async () => {
       try {
-        const storedEmail = await AsyncStorage.getItem('token');
+        // Here you would check local storage, secure storage or an API
+        // For demo purposes, we'll just simulate a loading delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (storedEmail) {
-          const userDocSnapshot = await getDoc(doc(db, 'users', storedEmail));
-          if (userDocSnapshot.exists()) {
-            const userData = userDocSnapshot.data();
-            const {password: _, ...userWithoutPassword} = userData;
-            setCurrentUser(userWithoutPassword as CurrentUser);
-          }
-        }
+        // Demo: No user found
+        setUser(null);
       } catch (error) {
-        console.error('Failed to restore session:', error);
+        console.error('Failed to check authentication status:', error);
       } finally {
         setLoading(false);
-        setAuthChecked(true);
       }
     };
 
-    loadInitialSession();
+    checkUserLoggedIn();
   }, []);
 
+  const login = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Demo login - in a real app, validate with your backend
+      if (email && password) {
+        const demoUser: User = {
+          id: '123',
+          name: 'Demo User',
+          email: email,
+          isAdmin: email.includes('admin'),
+        };
+        setUser(demoUser);
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      setLoading(true);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Demo registration - in a real app, send to your backend
+      if (name && email && password) {
+        // Registration successful, but user needs to login
+        return;
+      } else {
+        throw new Error('Invalid registration details');
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    // Clear user data
+    setUser(null);
+  };
+
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Demo forgot password - in a real app, send to your backend
+      if (email) {
+        return;
+      } else {
+        throw new Error('Please provide a valid email');
+      }
+    } catch (error) {
+      console.error('Forgot password request failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
-    currentUser,
-    setCurrentUser,
-    login,
-    logout,
+    user,
     loading,
+    login,
+    register,
+    logout,
+    forgotPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export default AuthContextProvider;

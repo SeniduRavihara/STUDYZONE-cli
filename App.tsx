@@ -1,13 +1,19 @@
+// App.tsx
 import React from 'react';
-import 'react-native-reanimated';
-import AuthContextProvider from './src/context/AuthContext';
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
-export default function App() {
+const App = () => {
   return (
-    <AuthContextProvider>
-      {/* <StatusBar barStyle="dark-content" /> */}
-      <RootNavigator />
-    </AuthContextProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StatusBar barStyle="dark-content" />
+        <RootNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
-}
+};
+
+export default App;
