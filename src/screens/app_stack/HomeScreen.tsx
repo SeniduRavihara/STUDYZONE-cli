@@ -8,17 +8,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { AppStackParamList } from '../../navigation/AppStack';
+import {AppStackParamList} from '../../navigation/AppStack';
+import {RootStackParamList} from '../../navigation/RootNavigator';
 
-
-type Props = NativeStackScreenProps<AppStackParamList, 'Home'>;
+type Props = NativeStackScreenProps<
+  AppStackParamList & RootStackParamList,
+  'Home'
+>;
 
 const HomeScreen = ({navigation}: Props) => {
   const handleLogout = () => {
-    // Add your logout logic here
-    console.log('User logged out');
-    // Navigate back to the auth stack
-    navigation.navigate('Auth', {screen: 'Login'});
+    // Clear any stored credentials or tokens here
+    navigation.navigate('Auth', {
+      screen: 'Login',
+    });
   };
 
   return (

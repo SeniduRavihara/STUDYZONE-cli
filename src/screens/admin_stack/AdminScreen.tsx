@@ -9,9 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {AdminStackParamList} from '../navigation/AdminStack';
+import {AdminStackParamList} from '../../navigation/AdminStack';
+import {RootStackParamList} from '../../navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<AdminStackParamList, 'Admin'>;
+type Props = NativeStackScreenProps<
+  AdminStackParamList & RootStackParamList,
+  'Admin'
+>;
 
 interface User {
   id: string;
@@ -72,10 +76,16 @@ const AdminScreen = ({navigation}: Props) => {
   }, []);
 
   const handleLogout = () => {
-    // Add your logout logic here
-    console.log('Admin logged out');
-    // Navigate back to the auth stack
-    navigation.navigate('Auth', {screen: 'Login'});
+    // Clear any stored credentials or tokens here
+    navigation.navigate('Auth', {
+      screen: 'Login',
+    });
+  };
+
+  const handleNavigateToApp = () => {
+    navigation.navigate('App', {
+      screen: 'Home',
+    });
   };
 
   const renderUser = ({item}: {item: User}) => (
@@ -132,12 +142,7 @@ const AdminScreen = ({navigation}: Props) => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() =>
-            navigation.navigate('Root', {
-              screen: 'App',
-              params: {screen: 'Home'},
-            })
-          }>
+          onPress={handleNavigateToApp}>
           <Text style={styles.backButtonText}>Back to App</Text>
         </TouchableOpacity>
 

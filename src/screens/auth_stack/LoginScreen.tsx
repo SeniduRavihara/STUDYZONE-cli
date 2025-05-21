@@ -8,9 +8,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {AuthStackParamList} from '../navigation/AuthStack';
+import {AuthStackParamList} from '../../navigation/AuthStack';
+import {RootStackParamList} from '../../navigation/RootNavigator';
+// import {AuthStackParamList} from '../navigation/AuthStack';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+type Props = NativeStackScreenProps<
+  AuthStackParamList & RootStackParamList,
+  'Login'
+>;
 
 const LoginScreen = ({navigation}: Props) => {
   const [email, setEmail] = useState('');
@@ -20,7 +25,9 @@ const LoginScreen = ({navigation}: Props) => {
     // Add your authentication logic here
     console.log('Login attempt with:', email, password);
     // If successful, navigate to the home screen
-    navigation.navigate('Root', {screen: 'App', params: {screen: 'Home'}});
+    navigation.navigate('App', {
+      screen: 'Home',
+    });
   };
 
   return (

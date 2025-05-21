@@ -2,10 +2,9 @@
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React from 'react';
 import LoadingScreen from '../screens/LoadingScreen';
+import ForgetPasswordScreen from '../screens/auth_stack/ForgetPasswordScreen';
 import LoginScreen from '../screens/auth_stack/LoginScreen';
 import RegisterScreen from '../screens/auth_stack/RegisterScreen';
-import ForgetPasswordScreen from '../screens/auth_stack/ForgetPasswordScreen';
-
 
 export type AuthStackParamList = {
   Loading: undefined;

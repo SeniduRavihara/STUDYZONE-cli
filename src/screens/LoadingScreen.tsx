@@ -3,8 +3,12 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useEffect} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {AuthStackParamList} from '../navigation/AuthStack';
+import {RootStackParamList} from '../navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Loading'>;
+type Props = NativeStackScreenProps<
+  AuthStackParamList & RootStackParamList,
+  'Loading'
+>;
 
 const LoadingScreen = ({navigation}: Props) => {
   useEffect(() => {
@@ -19,9 +23,8 @@ const LoadingScreen = ({navigation}: Props) => {
 
         if (isLoggedIn) {
           // User is logged in, navigate to Home
-          navigation.navigate('Root', {
-            screen: 'App',
-            params: {screen: 'Home'},
+          navigation.navigate('App', {
+            screen: 'Home',
           });
         } else {
           // User is not logged in, navigate to Login

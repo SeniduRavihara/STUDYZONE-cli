@@ -1,5 +1,6 @@
 package com.studyzone
 
+import android.os.Bundle  // Add this import
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -12,6 +13,13 @@ class MainActivity : ReactActivity() {
    * rendering of the component.
    */
   override fun getMainComponentName(): String = "STUDYZONE"
+
+  /**
+   * Required for proper react-navigation handling of Android back button and screen transitions
+   */
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(null)  // This is the important line for React Navigation
+  }
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]

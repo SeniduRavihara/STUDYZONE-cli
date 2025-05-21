@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {AuthStackParamList} from '../navigation/AuthStack';
+import { AuthStackParamList } from '../../navigation/AuthStack';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgetPassword'>;
 
