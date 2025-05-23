@@ -28,70 +28,103 @@ const PastPapersScreen = ({navigation, route}: Props) => {
   const handlePreview = async (url: string) => {
     console.log('Preview URL:', url);
     try {
-      // For Firebase Storage URLs, we need to ensure they're properly formatted
-      const formattedUrl = url.replace(/&/g, '%26');
-      const supported = await Linking.canOpenURL(formattedUrl);
+      // Try to open the URL directly first
+      try {
+        await Linking.openURL(url);
+        return;
+      } catch (directError) {
+        console.log('Direct URL failed, trying formatted URL...');
+      }
 
-      if (supported) {
+      // If direct fails, try with formatted URL (replace & with %26)
+      try {
+        const formattedUrl = url.replace(/&/g, '%26');
         await Linking.openURL(formattedUrl);
-      } else {
-        // If direct opening fails, try opening in browser
+        return;
+      } catch (formattedError) {
+        console.log('Formatted URL failed, trying Google Drive viewer...');
+      }
+
+      // If both fail, try Google Drive viewer as fallback
+      try {
         const browserUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(
           url,
         )}`;
-        const browserSupported = await Linking.canOpenURL(browserUrl);
-
-        if (browserSupported) {
-          await Linking.openURL(browserUrl);
-        } else {
-          throw new Error('Cannot open this file type');
-        }
+        await Linking.openURL(browserUrl);
+        return;
+      } catch (viewerError) {
+        console.log('Google Drive viewer failed, trying final attempt...');
       }
+
+      // Final fallback - try opening the original URL without canOpenURL check
+      await Linking.openURL(url);
     } catch (error) {
-      console.error('Error opening URL:', error);
+      console.error('All preview methods failed:', error);
       Alert.alert(
         'Error',
         'Failed to open the file. Please try downloading it instead.',
       );
     }
   };
-
   const handleDownload = async (item: PastPaper) => {
     console.log('Download URL:', item.url);
     try {
       setDownloading({...downloading, [item.id]: true});
 
-      // For Firebase Storage URLs, we need to ensure they're properly formatted
-      const formattedUrl = item.url.replace(/&/g, '%26');
-      const supported = await Linking.canOpenURL(formattedUrl);
+      // Try to open the URL directly first
+      try {
+        await Linking.openURL(item.url);
+        Alert.alert(
+          'Opening in Browser',
+          'The file will open in your browser where you can download it.',
+          [{text: 'OK'}],
+        );
+        return;
+      } catch (directError) {
+        console.log('Direct URL failed, trying formatted URL...');
+      }
 
-      if (supported) {
+      // If direct fails, try with formatted URL (replace & with %26)
+      try {
+        const formattedUrl = item.url.replace(/&/g, '%26');
         await Linking.openURL(formattedUrl);
         Alert.alert(
           'Opening in Browser',
           'The file will open in your browser where you can download it.',
           [{text: 'OK'}],
         );
-      } else {
-        // If direct opening fails, try opening in browser
+        return;
+      } catch (formattedError) {
+        console.log('Formatted URL failed, trying Google Drive viewer...');
+      }
+
+      // If both fail, try Google Drive viewer as fallback
+      try {
         const browserUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(
           item.url,
         )}`;
-        const browserSupported = await Linking.canOpenURL(browserUrl);
-
-        if (browserSupported) {
-          await Linking.openURL(browserUrl);
-          Alert.alert(
-            'View in Browser',
-            'The file will open in your browser where you can download it.',
-            [{text: 'OK'}],
-          );
-        } else {
-          throw new Error('Cannot open this file type');
-        }
+        await Linking.openURL(browserUrl);
+        Alert.alert(
+          'View in Browser',
+          'The file will open in your browser where you can download it.',
+          [{text: 'OK'}],
+        );
+        return;
+      } catch (viewerError) {
+        console.log(
+          'Google Drive viewer failed, trying direct browser navigation...',
+        );
       }
+
+      // Final fallback - try opening the original URL without canOpenURL check
+      await Linking.openURL(item.url);
+      Alert.alert(
+        'Opening in Browser',
+        'The file will open in your browser where you can download it.',
+        [{text: 'OK'}],
+      );
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('All download methods failed:', error);
       let errorMessage = 'Failed to download the file';
 
       if (error instanceof Error) {
