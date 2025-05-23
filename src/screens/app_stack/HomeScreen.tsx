@@ -96,7 +96,7 @@ const HomeScreen = ({navigation}: Props) => {
 
   const handleNext = (): void => {
     // Since SelectYear is not in the navigation stack, we'll navigate to Home for now
-    navigation.navigate('Home');
+    navigation.navigate('SelectYear');
   };
 
   return (
