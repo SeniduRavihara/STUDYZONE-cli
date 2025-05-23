@@ -1,90 +1,82 @@
 // src/context/AuthContext.tsx
-import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {doc, getDoc} from 'firebase/firestore';
+import React, {createContext, ReactNode, useEffect, useState} from 'react';
+import {db} from '../firebase/config';
+import {AuthContextType, CurrentUser} from '../types';
+import {hashPassword} from '../utils/hashPassword';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  isAdmin: boolean;
-}
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  forgotPassword: (email: string) => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider = ({children}: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
-    const checkUserLoggedIn = async () => {
+    const loadInitialSession = async () => {
       try {
-        // Here you would check local storage, secure storage or an API
-        // For demo purposes, we'll just simulate a loading delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const storedEmail = await AsyncStorage.getItem('token');
+        console.log(storedEmail);
 
-        // Demo: No user found
-        setUser(null);
+        if (storedEmail) {
+          const userDocSnapshot = await getDoc(doc(db, 'users', storedEmail));
+          if (userDocSnapshot.exists()) {
+            const userData = userDocSnapshot.data();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const {password: _, ...userWithoutPassword} = userData;
+            setCurrentUser(userWithoutPassword as CurrentUser);
+            console.log('User data:', userWithoutPassword);
+          }
+        }
       } catch (error) {
-        console.error('Failed to check authentication status:', error);
+        console.error('Failed to restore session:', error);
       } finally {
         setLoading(false);
+        setAuthChecked(true);
       }
     };
 
-    checkUserLoggedIn();
+    loadInitialSession();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  // 🔐 Login function
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const hashedPassword = await hashPassword(password);
+      const userDocRef = doc(db, 'users', email);
+      const userDocSnapshot = await getDoc(userDocRef);
 
-      // Demo login - in a real app, validate with your backend
-      if (email && password) {
-        const demoUser: User = {
-          id: '123',
-          name: 'Demo User',
-          email: email,
-          isAdmin: email.includes('admin'),
-        };
-        setUser(demoUser);
-      } else {
-        throw new Error('Invalid credentials');
+      if (userDocSnapshot.exists()) {
+        const userData = userDocSnapshot.data();
+
+        if (userData.password === hashedPassword) {
+          // Save session token
+          await AsyncStorage.setItem('token', email);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const {password: _, ...userWithoutPassword} = userData;
+          setCurrentUser(userWithoutPassword as CurrentUser);
+          return true;
+        }
       }
+
+      return false;
     } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    } finally {
-      setLoading(false);
+      console.error('Login error:', error);
+      return false;
     }
+  };
+
+  // 🔐 Logout function
+  const logout = async () => {
+    await AsyncStorage.removeItem('token');
+    setCurrentUser(null);
   };
 
   const register = async (name: string, email: string, password: string) => {
@@ -108,11 +100,6 @@ export const AuthProvider = ({children}: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
-    // Clear user data
-    setUser(null);
-  };
-
   const forgotPassword = async (email: string) => {
     try {
       setLoading(true);
@@ -134,7 +121,8 @@ export const AuthProvider = ({children}: AuthProviderProps) => {
   };
 
   const value = {
-    user,
+    currentUser,
+    setCurrentUser,
     loading,
     login,
     register,

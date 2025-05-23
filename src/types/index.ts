@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export type DataContextType = {
   currentUserData: UserDataType | null;
@@ -49,7 +49,7 @@ export type Quiz = {
   uploadDate: any;
   questions: number;
   size: string;
-  fileName: string,
+  fileName: string;
 };
 
 export interface Course {

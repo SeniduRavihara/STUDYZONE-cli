@@ -2,6 +2,7 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useEffect} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {useAuth} from '../hooks/useAuth';
 import {AuthStackParamList} from '../navigation/AuthStack';
 import {RootStackParamList} from '../navigation/RootNavigator';
 
@@ -11,17 +12,18 @@ type Props = NativeStackScreenProps<
 >;
 
 const LoadingScreen = ({navigation}: Props) => {
+  const {currentUser, loading} = useAuth();
+
   useEffect(() => {
     // Check if user is logged in
     const checkAuth = async () => {
+      if(loading) {
+        return;
+      }
       try {
-        // Here you would check if the user is authenticated
-        const isLoggedIn = false; // Replace with your auth check
+        // await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Wait for 1.5 seconds to simulate loading
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        if (isLoggedIn) {
+        if (currentUser) {
           // User is logged in, navigate to Home
           navigation.navigate('App', {
             screen: 'Home',
@@ -37,7 +39,7 @@ const LoadingScreen = ({navigation}: Props) => {
     };
 
     checkAuth();
-  }, [navigation]);
+  }, [currentUser, navigation, loading]);
 
   return (
     <View style={styles.container}>

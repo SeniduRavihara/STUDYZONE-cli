@@ -1,9 +1,6 @@
-// import * as Crypto from "expo-crypto";
+import SHA256 from 'crypto-js/sha256';
 
 export const hashPassword = async (password: string): Promise<string> => {
-  // const digest = await Crypto.digestStringAsync(
-  //   Crypto.CryptoDigestAlgorithm.SHA256,
-  //   password
-  // );
-  // return digest;
+  const hashedPassword = SHA256(password).toString();
+  return hashedPassword;
 };
