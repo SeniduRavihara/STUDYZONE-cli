@@ -65,14 +65,18 @@ const SelectModuleScreen = ({navigation, route}: Props) => {
   const handleNext = (): void => {
     if (selectedSubject) {
       const selected = courses.find(course => course.id === selectedSubject);
-
-      // navigation.navigate('Topics', {
-      //   academicYear,
-      //   semester,
-      //   subject: selectedSubject,
-      //   subjectCode: selected?.code,
-      //   subjectName: selected?.title,
-      // });
+      if (selected) {
+        navigation.navigate('SelectStudyMaterial', {
+          academicYear,
+          semester,
+          subject: selectedSubject,
+          subjectCode: selected.code,
+          subjectName: selected.title,
+          pastPapers: selected.pastPapers,
+          videos: selected.videos,
+          quizzes: selected.quizzes,
+        });
+      }
     }
   };
 
