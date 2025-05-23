@@ -17,7 +17,6 @@ interface AuthProviderProps {
 export const AuthProvider = ({children}: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     const loadInitialSession = async () => {
@@ -39,7 +38,6 @@ export const AuthProvider = ({children}: AuthProviderProps) => {
         console.error('Failed to restore session:', error);
       } finally {
         setLoading(false);
-        setAuthChecked(true);
       }
     };
 
