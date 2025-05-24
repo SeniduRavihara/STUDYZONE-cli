@@ -163,11 +163,11 @@ const PastPapersScreen = ({navigation, route}: Props) => {
         )}
       </View>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.actionButton, styles.previewButton]}
           onPress={() => handlePreview(item.url)}>
           <Icon name="eye-outline" size={20} color="#fff" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity
           style={[
             styles.actionButton,
