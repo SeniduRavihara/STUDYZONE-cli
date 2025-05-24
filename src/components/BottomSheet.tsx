@@ -1,4 +1,3 @@
-import {Course} from '../types';
 import React, {useEffect, useState} from 'react';
 import {
   Animated,
@@ -12,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {Course} from '../types';
 import PastPapersTab from './admin/bottom-sheet-tabs/PastPapersTab';
 import QuizzesTab from './admin/bottom-sheet-tabs/QuizzesTab';
 import YouTubeVideosTab from './admin/bottom-sheet-tabs/YouTubeVideosTab';
@@ -41,10 +41,8 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('pastPapers');
 
-  // Use effect to ensure modal is only visible after animation is prepared
   useEffect(() => {
     if (!openSheet) {
-      // Reset position when closed
       bottomSheetY.setValue(height);
       backdropOpacity.setValue(0);
     }
@@ -76,8 +74,8 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
       default:
         return (
           <PastPapersTab
-            selectedCourse={selectedCourse}
             courseId={selectedCourse.id}
+            selectedCourse={selectedCourse}
           />
         );
     }
@@ -127,7 +125,6 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             </View>
           </View>
 
-          {/* Tabs Navigation */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[
