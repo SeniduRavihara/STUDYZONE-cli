@@ -1,155 +1,314 @@
-// AdminScreen.tsx
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
-  FlatList,
+  Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {collection, onSnapshot} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {addNewCourse, updateCourse} from '../../firebase/api';
 import {AdminStackParamList} from '../../navigation/AdminStack';
 import {RootStackParamList} from '../../navigation/RootNavigator';
+import {Course} from '../../types';
+import DashboardTab from '../../components/admin/tabs/DashboardTab';
+import CoursesTab from '../../components/admin/tabs/CoursesTab';
+import UsersTab from '../../components/admin/tabs/UsersTab';
+import SettingsTab from '../../components/admin/tabs/SettingsTab';
 
 type Props = NativeStackScreenProps<
   AdminStackParamList & RootStackParamList,
   'Admin'
 >;
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
 const AdminScreen = ({navigation}: Props) => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  // State
+  const [activeTab, setActiveTab] = useState<
+    'dashboard' | 'courses' | 'users' | 'settings'
+  >('dashboard');
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
+  const [newCourseTitle, setNewCourseTitle] = useState<string>('');
+  const [newCourseCode, setNewCourseCode] = useState<string>('');
+  const [newCourseYear, setNewCourseYear] = useState<string>('First Year');
+  const [newCourseSemester, setNewCourseSemester] =
+    useState<string>('First Semester');
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // Sample data
+  const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-    // Simulate fetching users from an API
-    const fetchUsers = async () => {
-      try {
-        // Replace with actual API call
-        const mockUsers: User[] = [
-          {id: '1', name: 'John Doe', email: 'john@example.com', role: 'User'},
-          {
-            id: '2',
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            role: 'Admin',
-          },
-          {
-            id: '3',
-            name: 'Bob Johnson',
-            email: 'bob@example.com',
-            role: 'User',
-          },
-          {
-            id: '4',
-            name: 'Alice Brown',
-            email: 'alice@example.com',
-            role: 'User',
-          },
-          {
-            id: '5',
-            name: 'Charlie Davis',
-            email: 'charlie@example.com',
-            role: 'Moderator',
-          },
-        ];
+    const collectionRef = collection(db, 'courses');
+    const unsubscribe = onSnapshot(collectionRef, QuerySnapshot => {
+      const coursesArr = QuerySnapshot.docs.map(doc => ({
+        ...doc.data(),
+      })) as Course[];
 
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      setCourses(coursesArr);
+    });
 
-        setUsers(mockUsers);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+    return unsubscribe;
   }, []);
 
-  const handleLogout = () => {
-    // Clear any stored credentials or tokens here
-    navigation.navigate('Auth', {
-      screen: 'Login',
-    });
+  // Handle adding a new course
+  const handleAddCourse = async () => {
+    setLoading(true);
+    if (!newCourseTitle.trim() || !newCourseCode.trim()) {
+      Alert.alert('Error', 'Please fill in all the required fields');
+      return;
+    }
+
+    const newCourse: Course = {
+      id: newCourseCode,
+      code: newCourseCode,
+      title: newCourseTitle,
+      students: 0,
+      materials: 0,
+      image: 'https://via.placeholder.com/60',
+      academicYear: newCourseYear,
+      semester: newCourseSemester,
+    };
+
+    await addNewCourse(newCourse);
+
+    setCourses([...(courses ?? []), newCourse]);
+    setNewCourseTitle('');
+    setNewCourseCode('');
+    setNewCourseYear('first_year');
+    setNewCourseSemester('first_semester');
+    setModalVisible(false);
+    setLoading(false);
   };
 
-  const handleNavigateToApp = () => {
-    navigation.navigate('App', {
-      screen: 'Home',
-    });
+  // Handle editing a course
+  const handleEditCourse = (course: Course) => {
+    setCurrentCourse(course);
+    setNewCourseTitle(course.title);
+    setNewCourseCode(course.code);
+    setNewCourseYear(course.academicYear);
+    setNewCourseSemester(course.semester);
+    setModalVisible(true);
   };
 
-  const renderUser = ({item}: {item: User}) => (
-    <TouchableOpacity
-      style={styles.userCard}
-      onPress={() => alert(`Manage user: ${item.name}`)}>
-      <View>
-        <Text style={styles.userName}>{item.name}</Text>
-        <Text style={styles.userEmail}>{item.email}</Text>
-      </View>
-      <View style={styles.roleContainer}>
-        <Text style={styles.userRole}>{item.role}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  // Handle updating a course
+  const handleUpdateCourse = async () => {
+    if (!currentCourse) return;
+
+    if (!newCourseTitle.trim() || !newCourseCode.trim()) {
+      Alert.alert('Error', 'Please fill in all the required fields');
+      return;
+    }
+
+    const updatedCourses = (courses ?? []).map(course =>
+      course.id === currentCourse.id
+        ? {
+            ...course,
+            title: newCourseTitle,
+            code: newCourseCode,
+            academicYear: newCourseYear,
+            semester: newCourseSemester,
+          }
+        : course,
+    );
+
+    await updateCourse({
+      id: currentCourse.id,
+      title: newCourseTitle,
+      code: newCourseCode,
+      academicYear: newCourseYear,
+      semester: newCourseSemester,
+    });
+
+    setCourses(updatedCourses);
+    setNewCourseTitle('');
+    setNewCourseCode('');
+    setNewCourseYear('first_year');
+    setNewCourseSemester('first_semester');
+    setCurrentCourse(null);
+    setModalVisible(false);
+  };
+
+  // Render dashboard content
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardTab courses={courses} />;
+      case 'courses':
+        return (
+          <CoursesTab
+            courses={courses}
+            handleEditCourse={handleEditCourse}
+            setCourses={setCourses}
+            setCurrentCourse={setCurrentCourse}
+            setModalVisible={setModalVisible}
+            setNewCourseTitle={setNewCourseTitle}
+            setNewCourseCode={setNewCourseCode}
+          />
+        );
+      case 'users':
+        return <UsersTab />;
+      case 'settings':
+        return <SettingsTab />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Admin Dashboard</Text>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text>Loading users...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={users}
-          renderItem={renderUser}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContainer}
-          ListHeaderComponent={
-            <View style={styles.statsContainer}>
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>{users.length}</Text>
-                <Text style={styles.statLabel}>Total Users</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>
-                  {users.filter(user => user.role === 'Admin').length}
-                </Text>
-                <Text style={styles.statLabel}>Admins</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>
-                  {users.filter(user => user.role === 'User').length}
-                </Text>
-                <Text style={styles.statLabel}>Regular Users</Text>
-              </View>
-            </View>
-          }
-        />
-      )}
-
-      <View style={styles.buttonContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleNavigateToApp}>
-          <Text style={styles.backButtonText}>Back to App</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          style={styles.logoutButton}
+          onPress={() => navigation.navigate('Auth', {screen: 'Login'})}>
+          <Icon name="logout" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Navigation */}
+      <View style={styles.navigation}>
+        {['dashboard', 'courses', 'users', 'settings'].map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.navItem, activeTab === tab && styles.activeNavItem]}
+            onPress={() => setActiveTab(tab as any)}>
+            <Text
+              style={[
+                styles.navText,
+                activeTab === tab && styles.activeNavText,
+              ]}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Main Content */}
+      <View style={styles.contentContainer}>{renderContent()}</View>
+
+      {/* Course Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {currentCourse ? 'Edit Course' : 'Add New Course'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Course Code</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. ICT2113"
+                  value={newCourseCode}
+                  onChangeText={setNewCourseCode}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Course Title</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Database Management Systems"
+                  value={newCourseTitle}
+                  onChangeText={setNewCourseTitle}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Academic Year</Text>
+                <View style={styles.dropdownContainer}>
+                  <TouchableOpacity
+                    style={styles.dropdown}
+                    onPress={() => {
+                      Alert.alert('Select Academic Year', '', [
+                        {
+                          text: 'First Year',
+                          onPress: () => setNewCourseYear('first_year'),
+                        },
+                        {
+                          text: 'Second Year',
+                          onPress: () => setNewCourseYear('second_year'),
+                        },
+                        {
+                          text: 'Third Year',
+                          onPress: () => setNewCourseYear('third_year'),
+                        },
+                        {
+                          text: 'Fourth Year',
+                          onPress: () => setNewCourseYear('fourth_year'),
+                        },
+                        {text: 'Cancel', style: 'cancel'},
+                      ]);
+                    }}>
+                    <Text style={styles.dropdownText}>{newCourseYear}</Text>
+                    <Icon name="chevron-down" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Semester</Text>
+                <View style={styles.dropdownContainer}>
+                  <TouchableOpacity
+                    style={styles.dropdown}
+                    onPress={() => {
+                      Alert.alert('Select Semester', '', [
+                        {
+                          text: 'First Semester',
+                          onPress: () => setNewCourseSemester('first_semester'),
+                        },
+                        {
+                          text: 'Second Semester',
+                          onPress: () =>
+                            setNewCourseSemester('second_semester'),
+                        },
+                        {text: 'Cancel', style: 'cancel'},
+                      ]);
+                    }}>
+                    <Text style={styles.dropdownText}>{newCourseSemester}</Text>
+                    <Icon name="chevron-down" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={
+                    currentCourse ? handleUpdateCourse : handleAddCourse
+                  }>
+                  <Text style={styles.saveButtonText}>
+                    {currentCourse ? 'Update' : 'Save'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -157,121 +316,137 @@ const AdminScreen = ({navigation}: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F5F7FB',
   },
-  title: {
-    fontSize: 24,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#2563EB',
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    padding: 20,
-    textAlign: 'center',
+    color: '#fff',
   },
-  loadingContainer: {
+  logoutButton: {
+    padding: 8,
+  },
+  navigation: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  navItem: {
     flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  activeNavItem: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#2563EB',
+  },
+  navText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  activeNavText: {
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F5F7FB',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  listContainer: {
-    padding: 16,
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  statsContainer: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  stat: {
-    flex: 1,
-    backgroundColor: '#fff',
+    alignItems: 'center',
     padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
-  statNumber: {
-    fontSize: 22,
+  modalTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#007bff',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginTop: 5,
-  },
-  userCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '500',
     color: '#333',
   },
-  userEmail: {
+  modalBody: {
+    padding: 15,
+  },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  inputLabel: {
     fontSize: 14,
-    color: '#6c757d',
-    marginTop: 4,
+    color: '#666',
+    marginBottom: 5,
   },
-  roleContainer: {
-    backgroundColor: '#e9ecef',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+  input: {
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 14,
+    color: '#333',
   },
-  userRole: {
-    color: '#495057',
-    fontSize: 12,
+  dropdownContainer: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+  },
+  dropdown: {
+    height: 45,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 15,
+  },
+  modalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#F5F5F5',
+  },
+  cancelButtonText: {
+    color: '#666',
     fontWeight: '500',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
+  saveButton: {
+    backgroundColor: '#2563EB',
   },
-  backButton: {
-    flex: 1,
-    backgroundColor: '#6c757d',
-    padding: 12,
-    borderRadius: 6,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  backButtonText: {
+  saveButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-  },
-  logoutButton: {
-    flex: 1,
-    backgroundColor: '#dc3545',
-    padding: 12,
-    borderRadius: 6,
-    marginLeft: 8,
-    alignItems: 'center',
-  },
-  logoutButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 });
-
-// Use React Native's Alert API for cross-platform alerts
-
-function alert(message: string): void {
-  Alert.alert('Notice', message, [{text: 'OK'}]);
-}
 
 export default AdminScreen;
